@@ -1,0 +1,489 @@
+próba utworzenia z mapa po parametrze
+
+
+//    public Page<Person> findAllByValue(String type, String value, Pageable pageable) {
+//        if (type != null && strategies.containsKey(type.toUpperCase())) {
+//            PersonStrategy strategy = strategies.get(type.toUpperCase());
+//            return strategy.findAllByValue(value, pageable);
+//        } else if (value != null) {
+//            log.error("Strategy not found for type: {}", type);
+//            return personRepository.findAllByValue(value, pageable);
+//        }
+//        return personRepository.findAll(pageable);
+//    }
+
+   public Page<Person> findAll(Pageable pageable) {
+        return personRepository.findAll(pageable);
+    }
+
+    public Page<Person> findPersonParams(Map<String, Object> params, Pageable pageable) {
+        return personRepository.findAllBy(processParams(params), pageable);
+    }
+
+    public Page<Person> findByType(String type, Pageable pageable) {
+        if (strategies.containsKey(type)) {
+            PersonStrategy strategy = strategies.get(type);
+            return strategy.findAllByType(pageable);
+        } else {
+            throw new IllegalArgumentException("Unsupported type: " + type);
+        }
+    }
+
+    public Page<Person> findByTypeAndParams(String type, Map<String, Object> params, Pageable pageable) {
+        if (strategies.containsKey(type)) {
+            PersonStrategy strategy = strategies.get(type);
+            if (strategy != null) {
+                try {
+                    return strategy.findAllParams(params, pageable);
+                } catch (Exception e) {
+                    log.error("Error while executing strategy for type: {}", type, e);
+                    throw new RuntimeException("Error while executing strategy for type: " + type, e);
+                }
+            } else {
+                log.error("Strategy for type {} is null", type);
+                throw new IllegalArgumentException("Unsupported type: " + type);
+            }
+        } else {
+            log.error("Unsupported type: {}", type);
+            throw new IllegalArgumentException("Unsupported type: " + type);
+        }
+    }
+
+    private Map<String, Object> processParams(Map<String, Object> params) {
+        Map<String, Object> processedParams = new HashMap<>();
+
+        for (Map.Entry<String, Object> entry : params.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
+            if ("minWeight".equals(key) || "maxWeight".equals(key) || "minHeight".equals(key) || "maxHeight".equals(key)) {
+                processedParams.put(key, value instanceof String ? Integer.parseInt((String) value) : value);
+            } else {
+                processedParams.put(key, value);
+            }
+        }
+
+        return processedParams;
+    }
+
+
+
+
+//    @GetMapping()
+//    public ResponseEntity<Page<Person>> searchPersons(
+//            @RequestParam(required = false) String firstName,
+//            @RequestParam(required = false) String lastName,
+//            @RequestParam(required = false) String personalId,
+//            @RequestParam(required = false) Integer minHeight,
+//            @RequestParam(required = false) Integer maxHeight,
+//            @RequestParam(required = false) Integer minWeight,
+//            @RequestParam(required = false) Integer maxWeight,
+//            @RequestParam(required = false) String mail,
+//            @RequestParam(required = false) String type,
+//            @RequestParam(required = false) LocalDate startDate,
+//            @RequestParam(required = false) LocalDate endDate,
+//            @RequestParam(required = false) String position,
+//            @RequestParam(required = false) BigDecimal salary,
+//            @RequestParam(required = false) Integer pension,
+//            @RequestParam(required = false) Integer employmentYears,
+//            @RequestParam(required = false) String academyName,
+//            @RequestParam(required = false) Integer studyYear,
+//            @RequestParam(required = false) String studyField,
+//            @RequestParam(required = false) BigDecimal minScholarship,
+//            @RequestParam(required = false) BigDecimal maxScholarship,
+//            @PageableDefault(size = 20, sort = "lastName") Pageable pageable) {
+//
+//        Page<Person> result = personService.findAllWithFilters(
+//                firstName, lastName, personalId, minHeight, maxHeight, minWeight, maxWeight,
+//                mail, pageable, type, startDate, endDate, position, salary, pension,
+//                employmentYears, academyName, studyYear, studyField, minScholarship, maxScholarship);
+//
+//        return new ResponseEntity<>(result, HttpStatus.OK);
+//    }
+
+
+    //        @GetMapping
+    //    public ResponseEntity<Page<Person>> findAll(
+    //            @RequestParam(name = "type", required = false) String type,
+    //            @RequestParam(required = false) Map<String, Object> params,
+    //            Pageable pageable) {
+    //
+    //        if (type == null && (params == null || params.isEmpty())) {
+    //            return ResponseEntity.ok(personService.findAll(pageable));
+    //        } else if (type == null) {
+    //            return ResponseEntity.ok(personService.findPersonParams(params, pageable));
+    //        } else if (params == null || params.isEmpty()) {
+    //            return ResponseEntity.ok(personService.findByType(type, pageable));
+    //        } else {
+    //            return ResponseEntity.ok(personService.findByTypeAndParams(type, params, pageable));
+    //        }
+    //    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+package pl.szymanczyk.peoplemanagement.mapper;
+
+ public Page<Person> findAll(Pageable pageable) {
+        return personRepository.findAll(pageable);
+    }
+
+    public Page<Person> findPersonParams(Map<String, Object> params, Pageable pageable) {
+        return personRepository.findAllBy(processParams(params), pageable);
+    }
+
+    public Page<Person> findAllByType(String type, Pageable pageable) {
+        if (strategies == null || !strategies.containsKey(type)) {
+            throw new IllegalArgumentException("Invalid or missing strategy for type: " + type);
+        }
+        return strategies.get(type).findAll(pageable);
+    }
+
+    public Page<Person> findAllParams(Map<String, Object> params, Pageable pageable) {
+        String type = (String) params.get("type");
+
+        if (strategies == null || !strategies.containsKey(type)) {
+            throw new IllegalArgumentException("Invalid or missing strategy for type: " + type);
+        }
+
+        return strategies.get(type).findAllParams(params, pageable);
+    }
+
+    private Map<String, Object> processParams(Map<String, Object> params) {
+        Map<String, Object> processedParams = new HashMap<>();
+
+        for (Map.Entry<String, Object> entry : params.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
+            if ("minWeight".equals(key) || "maxWeight".equals(key) || "minHeight".equals(key) || "maxHeight".equals(key)) {
+                processedParams.put(key, value instanceof String ? Integer.parseInt((String) value) : value);
+            } else {
+                processedParams.put(key, value);
+            }
+        }
+
+        return processedParams
+
+
+
+
+import jakarta.validation.Valid;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import pl.szymanczyk.peoplemanagement.model.PersonRequestDto;
+import pl.szymanczyk.peoplemanagement.model.employee.Employee;
+import pl.szymanczyk.peoplemanagement.model.employee.EmployeeDto;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+DZIALA DLA EMPLOUEE
+@Mapper
+public interface EmployeeMapper {
+
+    @Mapping(target = "startEmployment", source = "args.startEmployment", dateFormat = "yyyy-MM-dd")
+    @Mapping(target = "position", source = "args.position")
+    @Mapping(target = "salary", source = "args.salary", numberFormat = "#.##")
+    @Mapping(target = "firstName", source = "args.firstName")
+    @Mapping(target = "lastName", source = "args.lastName")
+    @Mapping(target = "personalId", source = "args.personalId")
+    @Mapping(target = "height", source = "args.height")
+    @Mapping(target = "weight", source = "args.weight")
+    @Mapping(target = "mail", source = "args.mail")
+    Employee mapToEntity(PersonRequestDto personRequestDto);
+
+    @Mapping(target = "startEmployment", source = "args.startEmployment", dateFormat = "yyyy-MM-dd")
+    @Mapping(target = "position", source = "args.position")
+    @Mapping(target = "salary", source = "args.salary", numberFormat = "#.##")
+    @Mapping(target = "firstName", source = "args.firstName")
+    @Mapping(target = "lastName", source = "args.lastName")
+    @Mapping(target = "personalId", source = "args.personalId")
+    @Mapping(target = "height", source = "args.height")
+    @Mapping(target = "weight", source = "args.weight")
+    @Mapping(target = "mail", source = "args.mail")
+    EmployeeDto mapToDto(@Valid PersonRequestDto personRequestDto);
+
+    Employee fromDto(@Valid EmployeeDto employeeDto);
+    EmployeeDto toDto (Employee employee);
+
+
+}
+package pl.szymanczyk.peoplemanagement.repository;
+
+import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import pl.szymanczyk.peoplemanagement.model.Person;
+import pl.szymanczyk.peoplemanagement.model.employee.Employee;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.Optional;
+
+public interface EmployeeRepository extends JpaRepository<Employee, Long> {
+
+    @Query("SELECT e FROM Employee e " +
+            "JOIN Person p ON e.id = p.id " +
+            "WHERE (:startEmployment IS NULL OR e.startEmployment = :startEmployment) " +
+            "AND (:position IS NULL OR LOWER(e.position) = LOWER(:position)) " +
+            "AND (:salary IS NULL OR e.salary = :salary)")
+    Page<Person> findAllPeopleByStartEmploymentAndPositionAndSalary(
+            LocalDate startEmployment, String position, BigDecimal salary, Pageable pageable);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<Employee> findWithLockingById(long id);
+
+}
+//    public void processCsv(MultipartFile file, ImportStatus importStatus) throws IOException {
+//        try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
+//            reader.lines().skip(1).forEach(line -> {
+//                String[] columns = line.split(",");
+//                Person person = mapToPerson(columns);
+//                personRepository.save(person);
+//                updateImportStatus(importStatus, importStatus.getProcessedRows() + 1);
+//            });
+//        }
+//    }
+
+//
+//    @GetMapping
+//    public ResponseEntity<Page<Person>> getAll(
+//            @ModelAttribute @Valid PersonRequestDto personRequestDto,
+//            @PageableDefault(size = 20) Pageable pageable) {
+//
+//        if (personRequestDto.getType() != null) {
+//            // Jeśli podano typ, użyj odpowiedniej strategii
+//            Page<Person> filteredResults = personService.getAllPeople(personRequestDto, pageable);
+//            return new ResponseEntity<>(filteredResults, HttpStatus.OK);
+//        } else {
+//            // Jeśli nie podano typu, zwróć wszystkie wyniki
+//            Page<Person> allPeople = personService.getAllPeople(new PersonRequestDto(), pageable);
+//            return new ResponseEntity<>(allPeople, HttpStatus.OK);
+//        }
+//    }
+
+//    @Mapping(target = "startEmployment", source = "args.startEmployment", dateFormat = "yyyy-MM-dd")
+//    @Mapping(target = "position", source = "args.position")
+//    @Mapping(target = "salary", source = "args.salary", numberFormat = "#.##")
+//    @Mapping(target = "firstName", source = "args.firstName")
+//    @Mapping(target = "lastName", source = "args.lastName")
+//    @Mapping(target = "personalId", source = "args.personalId")
+//    @Mapping(target = "height", source = "args.height")
+//    @Mapping(target = "weight", source = "args.weight")
+//    @Mapping(target = "mail", source = "args.mail")
+//    @Mapping(target = "employeePositions", ignore = true)  // Ignorujemy pole, aby uniknąć problemów z mapowaniem
+
+//    Employee mapToEntity(PersonRequestDto personRequestDto);
+//    @Mapping(target = "startEmployment", source = "args.startEmployment", dateFormat = "yyyy-MM-dd")
+//    @Mapping(target = "position", source = "args.position")
+//    @Mapping(target = "salary", source = "args.salary", numberFormat = "#.##")
+//    @Mapping(target = "firstName", source = "args.firstName")
+//    @Mapping(target = "lastName", source = "args.lastName")
+//    @Mapping(target = "personalId", source = "args.personalId")
+//    @Mapping(target = "height", source = "args.height")
+//    @Mapping(target = "weight", source = "args.weight")
+//    @Mapping(target = "mail", source = "args.mail")
+//    @Mapping(target = "employeePositions", expression = "java(mapEmployeePositions(employee.getEmployeePastPositions()))")
+//    EmployeeDto mapToDto(PersonRequestDto personRequestDto);
+//
+//    Employee fromDto(EmployeeDto employeeDto);
+//
+//    EmployeeDto toDto (Employee employee);
+
+// private Person mapToPerson(String[] columns) {
+          String personType = columns[0].toLowerCase();
+
+          return switch (personType) {
+              case "employee" -> Employee.builder()
+                      .mail(columns[6])
+                      .personalId(columns[3])
+                      .firstName(columns[1])
+                      .lastName(columns[2])
+                      .height(Integer.parseInt(columns[4]))
+                      .weight(Integer.parseInt(columns[5]))
+                      .build();
+              case "pensioner" -> Pensioner.builder()
+                      .mail(columns[6])
+                      .personalId(columns[3])
+                      .firstName(columns[1])
+                      .lastName(columns[2])
+                      .height(Integer.parseInt(columns[4]))
+                      .weight(Integer.parseInt(columns[5]))
+                      .build();
+              case "student" -> Student.builder()
+                      .mail(columns[6])
+                      .personalId(columns[3])
+                      .firstName(columns[1])
+                      .lastName(columns[2])
+                      .height(Integer.parseInt(columns[4]))
+                      .weight(Integer.parseInt(columns[5]))
+                      .build();
+              default -> throw new IllegalArgumentException("Nieznany typ osoby w pliku CSV: " + personType);
+          };
+      }
+
+      person repo(szukanie query)
+
+          //    @Query("SELECT p FROM Person p " +
+      //            "WHERE (:type IS NULL OR TYPE(p) = :type) " +
+      //            "AND (:minWeight IS NULL OR p.weight >= :minWeight) " +
+      //            "AND (:maxWeight IS NULL OR p.weight <= :maxWeight) " +
+      //            "AND (:minHeight IS NULL OR p.height >= :minHeight) " +
+      //            "AND (:maxHeight IS NULL OR p.height <= :maxHeight) " +
+      //            "AND (LOWER(p.firstName) LIKE LOWER(CONCAT('%', COALESCE(:firstName, ''),'%'))) " +
+      //            "AND (LOWER(p.lastName) LIKE LOWER(CONCAT('%', COALESCE(:lastName, ''),'%'))) " +
+      //            "AND (LOWER(p.personalId) LIKE LOWER(CONCAT('%', COALESCE(:personalId, ''),'%'))) " +
+      //            "AND (LOWER(p.mail) LIKE LOWER(CONCAT('%', COALESCE(:mail, ''),'%'))) ")
+      //    Page<Person> findAllWithFilters(@Param("type") String type,
+      //                                    @Param("firstName") String firstName,
+      //                                    @Param("lastName") String lastName,
+      //                                    @Param("personalId") String personalId,
+      //                                    @Param("minHeight") Integer minHeight,
+      //                                    @Param("maxHeight") Integer maxHeight,
+      //                                    @Param("minWeight") Integer minWeight,
+      //                                    @Param("maxWeight") Integer maxWeight,
+      //                                    @Param("mail") String mail,
+      //                                    Pageable pageable);
+
+
+      //    @Query("SELECT p FROM Person p " +
+      //            "WHERE (:type IS NULL OR TYPE(p) = :type) " +
+      //            "AND (:minWeight IS NULL OR p.weight >= :minWeight) " +
+      //            "AND (:maxWeight IS NULL OR p.weight <= :maxWeight) " +
+      //            "AND (:minHeight IS NULL OR p.height >= :minHeight) " +
+      //            "AND (:maxHeight IS NULL OR p.height <= :maxHeight) " +
+      //            "AND (LOWER(p.firstName) LIKE LOWER(CONCAT('%', COALESCE(:firstName, ''),'%'))) " +
+      //            "AND (LOWER(p.lastName) LIKE LOWER(CONCAT('%', COALESCE(:lastName, ''),'%'))) " +
+      //            "AND (LOWER(p.personalId) LIKE LOWER(CONCAT('%', COALESCE(:personalId, ''),'%'))) " +
+      //            "AND (LOWER(p.mail) LIKE LOWER(CONCAT('%', COALESCE(:mail, ''),'%'))) ")
+      //    Page<Person> findAllWithFilters(@Param("type") String type,
+      //                                    @Param("minWeight") Integer minWeight,
+      //                                    @Param("maxWeight") Integer maxWeight,
+      //                                    @Param("minHeight") Integer minHeight,
+      //                                    @Param("maxHeight") Integer maxHeight,
+      //                                    @Param("firstName") String firstName,
+      //                                    @Param("lastName") String lastName,
+      //                                    @Param("personalId") String personalId,
+      //                                    @Param("mail") String mail,
+      //                                    Pageable pageable);
+
+//    @Query("SELECT s FROM Student s " +
+//            "WHERE (LOWER(s.academyName) LIKE LOWER(CONCAT('%', COALESCE(:academyName, ''),'%'))) " +
+//            "AND (:studyYear IS NULL OR s.studyYear = :studyYear) " +
+//            "AND (LOWER(s.studyField) LIKE LOWER(CONCAT('%', COALESCE(:studyField, ''),'%'))) " +
+//            "AND (:minScholarship IS NULL OR s.scholarship >= :minScholarship) " +
+//            "AND (:maxScholarship IS NULL OR s.scholarship <= :maxScholarship)")
+//    Page<Person> findAllWithFilters(@Param("academyName") String academyName,
+//                                    @Param("studyYear") Integer studyYear,
+//                                    @Param("studyField") String studyField,
+//                                    @Param("minScholarship") BigDecimal minScholarship,
+//                                    @Param("maxScholarship") BigDecimal maxScholarship,
+//                                    Pageable pageable);
+
+
+
+//    public Page<Person> findAllBy(Pageable pageable, Map<String, Object> params, String type) {
+//        log.info("findAllBy: type={}, params={}", type, params);
+//
+//        if (type != null && strategies.containsKey(type.toUpperCase())) {
+//            // Jeśli podano typ, użyj odpowiedniej strategii
+//            return strategies.get(type.toUpperCase()).findAll(pageable, params);
+//        } else {
+//            // Jeśli typ nie jest podany, użyj ogólnej metody
+//            throw new IllegalArgumentException("podaj typ");
+//        }
+//    }
+//
+//
+//    public Page<Person> findAllByDefault(Pageable pageable, Map<String, Object> params, String type) {
+//        log.info("findAllBy: type={}, params={}", type, params);
+//
+//
+          Map<String, Object> processedParams = new HashMap<>();
+
+            for (Map.Entry<String, Object> entry : params.entrySet()) {
+                String key = entry.getKey();
+                Object value = entry.getValue();
+                if ("minWeight".equals(key) || "maxWeight".equals(key) || "minHeight".equals(key) || "maxHeight".equals(key)) {
+                    processedParams.put(key, value instanceof String ? Integer.parseInt((String) value) : value);
+                } else {
+                    processedParams.put(key, value);
+                }
+            }
+
+            return personRepository.findAllBy(processedParams, pageable);
+        }
+
+                    if (type != null && strategies.containsKey(type.toUpperCase())) {
+                        return strategies.get(type.toUpperCase()).findAll(pageable, params);
+                    }
+                    Map<String, Object> processedParams = new HashMap<>();
+
+                    for (Map.Entry<String, Object> entry : params.entrySet()) {
+                        String key = entry.getKey();
+                        Object value = entry.getValue();
+                        if ("minWeight".equals(key) || "maxWeight".equals(key) || "minHeight".equals(key) || "maxHeight".equals(key)) {
+                            processedParams.put(key, value instanceof String ? Integer.parseInt((String) value) : value);
+                        } else {
+                            processedParams.put(key, value);
+                        }
+
+
+                        return personRepository.findAllBy(processedParams, pageable);
+                    }
+
+                    if (type == null && !params.isEmpty()) {
+                        return personRepository.findAllBy(params, pageable);
+                    }
+
+                    if (params.isEmpty() && type == null) {
+                        return personRepository.findAll(pageable);
+                    }
+
+                    throw new IllegalArgumentException();
+                }
+
+
+                takie se
+                //    public Page<Person> findAllBy(Pageable pageable, PersonRequestDto personRequestDto) {
+                //        log.info("findAllBy: params={}, type={}", personRequestDto.getArgs(), personRequestDto.getType());
+                //
+                //        if (personRequestDto.getType() != null && strategies.containsKey(personRequestDto.getType().toUpperCase())) {
+                //            PersonStrategy strategy = strategies.get(personRequestDto.getType().toUpperCase());
+                //            return strategy.findAll(pageable, personRequestDto);
+                //        }
+                //
+                //        Map<String, Object> processedParams = processParams(personRequestDto.getArgs());
+                //
+                //        return personRepository.findAllBy(processedParams, pageable);
+                //    }
+                //
+                //    private Map<String, Object> processParams(Map<String, String> params) {
+                //        Map<String, Object> processedParams = new HashMap<>();
+                //
+                //        for (Map.Entry<String, String> entry : params.entrySet()) {
+                //            String key = entry.getKey();
+                //            String value = entry.getValue();
+                //            if ("minWeight".equals(key) || "maxWeight".equals(key) || "minHeight".equals(key) || "maxHeight".equals(key)) {
+                //                processedParams.put(key, value != null ? Integer.parseInt(value) : value);
+                //            } else {
+                //                processedParams.put(key, value);
+                //            }
+                //        }
+                //
+                //        return processedParams;
+                //    }
+
+
+    }dizala ale tak se
